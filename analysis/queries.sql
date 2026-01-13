@@ -3,9 +3,10 @@
 -- Média de valor total
 
 SELECT 
-    MONTH(tpep_pickup_datetime) AS mes,
-    ROUND(AVG(total_amount), 2) AS media_valor_total
-FROM ifood_db.yellow_taxi
+    month(tpep_pickup_datetime) AS mes,
+    round(avg(total_amount), 2) AS media_valor_total
+FROM "db_analytics"."ifood-analyticsyellow_taxi_silver"
+WHERE total_amount > 0 -- Garantia extra de qualidade
 GROUP BY 1
 ORDER BY 1;
 
@@ -13,9 +14,10 @@ ORDER BY 1;
 -- Média de passageiros por hora no mês de Maio - 2023
 
 SELECT 
-    HOUR(tpep_pickup_datetime) AS hora,
-    ROUND(AVG(passenger_count), 2) AS media_passageiros
-FROM ifood_db.yellow_taxi
-WHERE MONTH(tpep_pickup_datetime) = 5
+    hour(tpep_pickup_datetime) AS hora_dia,
+    round(avg(passenger_count), 2) AS media_passageiros
+FROM "db_analytics"."ifood-analyticsyellow_taxi_silver"
+WHERE month(tpep_pickup_datetime) = 5
+  AND passenger_count IS NOT NULL
 GROUP BY 1
 ORDER BY 1;
