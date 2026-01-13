@@ -25,7 +25,6 @@ Como **Data Architect**, foquei na resiliência do pipeline contra o **Schema Dr
 
 - `src/ingestion.py`: Script de ingestão API -> S3.
 - `src/processing.py`: Pipeline de limpeza, harmonização e modelagem Delta.
-- `src/analysis.py`: Scripts PySpark para as perguntas de negócio.
 - `analysis/queries.sql`: Queries SQL equivalentes para consulta via Metastore.
 
 ## 📊 Modelagem e Resultados
