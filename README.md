@@ -11,15 +11,19 @@ A solução foi desenhada seguindo o padrão **Data Lakehouse**, utilizando a ar
 
 ## 🧠 Desafios Técnicos e Resolução
 
-Como **Data Architect**, foquei na resiliência do pipeline contra o **Schema Drift**:
+Como **Data Engineer/Architect**, foquei na resiliência do pipeline contra o **Schema Drift**:
 
-1. **Inconsistência de Tipos (Mês 01):** Identifiquei que o arquivo de Janeiro/2023 possuía a coluna `passenger_count` como `Double`, enquanto os outros meses utilizavam `Long`.
-   - **Solução:** Implementei uma **Harmonização Manual** através de uma função de leitura atômica com casting explícito, unificando os DataFrames via `unionByName` apenas após a padronização.
-   
-2. **Erro no Leitor Vetorizado do Spark:** Devido a metadados conflitantes no Parquet, o Spark lançava `ClassCastException`.
-   - **Solução:** Desabilitei o `spark.sql.parquet.enableVectorizedReader`, permitindo que o Spark realizasse a conversão de tipos de forma flexível durante a ingestão.
+- Inconsistência de Tipos (Schema Drift): Identifiquei que o arquivo de Janeiro/2023 possuía a coluna passenger_count como Double, enquanto os outros meses utilizavam Long.
 
-3. **Segurança de Credenciais:** As chaves AWS foram protegidas utilizando variáveis de ambiente e arquivos `.env`, seguindo as melhores práticas de segurança (DevSecOps).
+Solução: Implementei uma Harmonização Manual através de uma função de leitura atômica com casting explícito, unificando os DataFrames via unionByName apenas após a padronização.
+
+- Erro no Leitor Vetorizado do Spark: Devido a metadados conflitantes no Parquet de diferentes meses, o Spark lançava ClassCastException.
+
+Solução: Desabilitei o spark.sql.parquet.enableVectorizedReader, permitindo que o Spark realizasse a conversão de tipos de forma flexível durante a ingestão.
+
+- Governança com AWS Glue: Configurei um Crawler para ler o local s3://ifood-case-nyc-data-lake/silver/. O Crawler identificou automaticamente o protocolo Delta, mapeando as partições e esquemas para o AWS Glue Data Catalog. Isso eliminou a necessidade de manter clusters Spark ativos para consultas ad-hoc.
+
+- Segurança de Credenciais: As chaves AWS foram protegidas utilizando variáveis de ambiente e arquivos .env, seguindo práticas de DevSecOps.
 
 ## 📁 Estrutura do Projeto
 
@@ -29,10 +33,13 @@ Como **Data Architect**, foquei na resiliência do pipeline contra o **Schema Dr
 
 ## 📊 Modelagem e Resultados
 
-As tabelas foram modeladas e criadas do zero no Data Lake:
-- **Tabela:** `ifood_db.yellow_taxi`
-- **Formato:** Delta Lake
-- **Localização:** `s3a://ifood-case-nyc-data-lake/silver/`
+As tabelas foram modeladas e criadas do zero, respeitando a separação entre armazenamento (S3) e metadados (Glue Catalog):
+
+- Tabela Lógica: db_analytics.ifood-analyticsyellow_taxi_silver
+
+- Formato Físico: Delta Lake (Parquet + Delta Log)
+
+- Localização: s3a://ifood-case-nyc-data-lake/silver/
 
 ### Resultados Finais:
 - **Análise 1:** Média de faturamento total (`total_amount`) por mês.
