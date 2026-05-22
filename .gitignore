@@ -1,0 +1,24 @@
+# Credenciais — NUNCA commitar
+.env
+*.env
+.env.*
+credentials
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+ifood-env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Dados locais
+data/
+*.parquet
+*.csv
+
+# OS
+.DS_Store
+Thumbs.db

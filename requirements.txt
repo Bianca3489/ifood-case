@@ -1,0 +1,7 @@
+# Dependencias para execucao local (download_to_s3.py)
+boto3>=1.34.0
+requests>=2.31.0
+
+# Dependencias Databricks (ja instaladas no ambiente, listadas para referencia)
+# pyspark==3.4.x  -- fornecido pelo Databricks Runtime 13.3 LTS
+# delta-spark     -- fornecido pelo Databricks Runtime
