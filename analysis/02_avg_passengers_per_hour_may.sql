@@ -18,5 +18,5 @@ SELECT
     SUM(passenger_count)                        AS total_passageiros
 FROM ifood_catalog.silver.yellow_taxi
 WHERE year = '2023' AND month = '5'
-GROUP BY hora_do_dia
+GROUP BY hora_do_dia, periodo_do_dia
 ORDER BY hora_do_dia;

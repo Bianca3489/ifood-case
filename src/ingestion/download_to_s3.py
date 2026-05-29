@@ -17,10 +17,12 @@ Credenciais: configure via variavel de ambiente ou AWS CLI
 
 import boto3
 import requests
-import io
 import os
 import logging
 from botocore.exceptions import ClientError
+from requests.adapters import HTTPAdapter
+# pyrefly: ignore [missing-import]
+from urllib3.util.retry import Retry
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -42,6 +44,11 @@ s3 = boto3.client(
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
 )
 
+# HTTP session com retry automatico (resiliencia contra erros transientes)
+session = requests.Session()
+retries = Retry(total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
+session.mount("https://", HTTPAdapter(max_retries=retries))
+
 def _exists(key):
     try:
         s3.head_object(Bucket=S3_BUCKET, Key=key)
@@ -61,13 +68,15 @@ def ingest_month(month):
         return {"month": month, "status": "skipped"}
 
     log.info(f"Baixando: {filename}")
-    resp = requests.get(url, stream=True, timeout=180)
+    resp = session.get(url, stream=True, timeout=180)
     resp.raise_for_status()
-    content = resp.content
-    mb = len(content) / 1_048_576
-    log.info(f"Subindo {mb:.1f} MB -> s3://{S3_BUCKET}/{s3_key}")
-    s3.upload_fileobj(io.BytesIO(content), S3_BUCKET, s3_key)
-    log.info(f"OK: {filename} ({mb:.1f} MB)")
+    content_length = int(resp.headers.get("content-length", 0))
+    mb = content_length / 1_048_576
+    log.info(f"Subindo ~{mb:.1f} MB -> s3://{S3_BUCKET}/{s3_key}")
+    # Streaming direto HTTP -> S3 (sem carregar tudo na RAM)
+    resp.raw.decode_content = True
+    s3.upload_fileobj(resp.raw, S3_BUCKET, s3_key)
+    log.info(f"OK: {filename} (~{mb:.1f} MB)")
     return {"month": month, "status": "uploaded", "mb": round(mb, 1)}
 
 if __name__ == "__main__":
