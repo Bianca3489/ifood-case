@@ -9,6 +9,8 @@ de corridas de taxi amarelo de Nova York (NYC TLC), periodo Janeiro-Maio 2023.
 
 ## Arquitetura — Medallion (Bronze / Silver / Gold)
 
+![Pipeline de Dados NYC Taxi — Arquitetura Medallion e Insights de Negócio](assets/architecture.png)
+
 ```
 NYC TLC Website
       |
