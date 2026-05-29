@@ -57,18 +57,33 @@ As credenciais AWS sao gerenciadas via **Databricks Secrets** — nunca hardcode
 
 ```bash
 pip install databricks-cli
-databricks configure --token  # informe host e token do workspace
+# ou, se estiver usando venv:
+.venv/bin/pip install databricks-cli
 ```
 
-### 2. Criar scope e secrets
+### 2. Autenticar no workspace
 
 ```bash
-databricks secrets create-scope --scope ifood-aws
-databricks secrets put --scope ifood-aws --key bucket
-# Informe o valor: ifood-case-datalake
+.venv/bin/databricks configure --token
+# Host: https://<seu-workspace>.cloud.databricks.com
+# Token: gere em Settings -> Developer -> Access tokens
 ```
 
-### 3. Configurar acesso S3
+### 3. Criar scope e secrets
+
+Use `--string-value` para evitar o editor interativo:
+
+```bash
+.venv/bin/databricks secrets create-scope --scope ifood-aws
+.venv/bin/databricks secrets put --scope ifood-aws --key access-key --string-value "SUA_AWS_ACCESS_KEY"
+.venv/bin/databricks secrets put --scope ifood-aws --key secret-key --string-value "SUA_AWS_SECRET_KEY"
+.venv/bin/databricks secrets put --scope ifood-aws --key bucket --string-value "ifood-case-datalake"
+
+# Verificar:
+.venv/bin/databricks secrets list --scope ifood-aws
+```
+
+### 4. Configurar acesso S3
 
 O acesso ao S3 e feito via **IAM Role** configurado no Unity Catalog:
 - Storage Credential: `ifood-s3-credential`
@@ -91,16 +106,31 @@ Nenhuma Access Key e passada ao Spark — autenticacao via IAM Role automaticame
 ### Passo 1 — Download dos arquivos (local)
 
 ```bash
-python3 -m venv ifood-env
-source ifood-env/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+```
 
-export AWS_ACCESS_KEY_ID=sua_key
-export AWS_SECRET_ACCESS_KEY=sua_secret
-export S3_BUCKET=ifood-case-datalake
+Crie um arquivo `.env` na raiz do projeto com suas credenciais AWS
+(ja esta no `.gitignore` — nunca sera commitado):
 
+```bash
+# .env
+AWS_ACCESS_KEY_ID=sua_key
+AWS_SECRET_ACCESS_KEY=sua_secret
+AWS_REGION=us-east-1
+S3_BUCKET=ifood-case-datalake
+```
+
+Execute o script:
+
+```bash
+set -a && source .env && set +a
 python src/ingestion/download_to_s3.py
 ```
+
+O script faz download com **streaming direto HTTP → S3** (sem carregar os arquivos na RAM)
+e possui **retry automatico** (3 tentativas com backoff exponencial) para resiliencia.
 
 ### Passo 2 — Importar notebooks no Databricks
 
@@ -167,3 +197,7 @@ levemente maior de passageiros por corrida — sugerindo uso em grupos (lazer).
 | snake_case na Silver | Padrao de engenharia de dados |
 | SQL na Gold | Acessivel para o time de negocio sem conhecimento de PySpark |
 | Databricks Secrets | Zero credenciais hardcoded ou em variaveis de ambiente no codigo |
+| Streaming HTTP→S3 | Download sem buffering em RAM — `resp.raw` direto para `upload_fileobj` |
+| Retry com backoff | 3 tentativas automaticas para erros 429/5xx — resiliencia a falhas transientes |
+| EDA single-pass | 4 full scans separados → 1 unica passada com expressoes condicionais |
+| .env + .gitignore | Credenciais locais isoladas do repositorio — nunca expostas no Git |
